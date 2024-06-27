@@ -1,0 +1,13 @@
+dataset:
+  channels: 3
+  resolution:
+  path: dataset/DIV2K
+  filetype: png
+generator:
+  feature_maps: 64
+train:
+  batch_size: 16
+  epochs: 10
+  hyper_lambda: 0.5
+  hyper_eta: 0.5
+  lr: 0.001
