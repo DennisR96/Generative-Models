@@ -50,8 +50,8 @@ class GAN(Base):
         batch_size = images.size(0)
         
         ## Real and Fake Label Tensor
-        Real_Labels = torch.full((batch_size,), 1, dtype=torch.float, device=self.device)
-        Fake_Labels = torch.full((batch_size,), 0, dtype=torch.float, device=self.device)
+        Real_Labels = torch.full((batch_size,), 1.0, dtype=torch.float, device=self.device)
+        Fake_Labels = torch.full((batch_size,), 0.0, dtype=torch.float, device=self.device)
         
         # 1. Train Discriminator
         ## Real Images D_x
@@ -80,7 +80,7 @@ class GAN(Base):
         errG = self.criterion(output, Real_Labels)
         errG.backward()
         
-        ## Calculate Losss
+        ## Calculate Loss
         D_G_z2 = output.mean().item()
         self.optimizerG.step() 
         return 0

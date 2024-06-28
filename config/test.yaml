@@ -20,6 +20,6 @@ optim:
   beta1: 0.9
 train:
   batch_size: 64
-  num_epochs: 10
+  num_epochs: 100
   hyper_lambda: 0.5
   hyper_eta: 0.5
