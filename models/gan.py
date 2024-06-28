@@ -18,7 +18,7 @@ class GAN(Base):
         self.dataloader = DataLoader(dataset, batch_size=self.config.train.batch_size, shuffle=True)
 
         # Loss
-        self.criterion = nn.BCELoss()
+        self.criterion = nn.BCEWithLogitsLoss()
         
         # Discriminator and Generator
         self.netG = netG.to(self.device)
