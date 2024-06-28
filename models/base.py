@@ -16,8 +16,6 @@ class Base():
         """
         Check Available Device
         """
-        device = "cpu"
-        return device
         if torch.cuda.is_available():
             device = "cuda"
         elif torch.backends.mps.is_available():
