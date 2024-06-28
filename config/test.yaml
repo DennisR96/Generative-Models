@@ -1,0 +1,25 @@
+dataset:
+  name: "MNIST"
+  channels: 1
+  resolution: 64
+  path: datasets/MNIST
+  path_images: datasets/MNIST/train-images-idx3-ubyte.gz
+  path_labels: datasets/MNIST/train-labels-idx1-ubyte.gz
+  lowres: True
+network:
+  channels: 1
+  feature_maps: 64
+  latent_vector: 100
+  generator_input: 64
+  generator_features: 64
+optim:
+  amsgrad: False
+  optimizer: "Adam"
+  lr: 0.0001
+  weight_decay: 0
+  beta1: 0.9
+train:
+  batch_size: 64
+  num_epochs: 10
+  hyper_lambda: 0.5
+  hyper_eta: 0.5

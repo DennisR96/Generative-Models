@@ -10,7 +10,7 @@ from network.StarSRGAN.discriminator import AttentionUNetDiscriminator
 from network.StarSRGAN.generator import StarSRNet
 from dataset.dataset import Dataset
 from utils.utils import dict2namespace
-from model.loss import Pixel_Loss, Perceptual_Loss
+from models.loss import Pixel_Loss, Perceptual_Loss
 
 # Load Config YAML as Namespace 
 config_path = "config/config.yaml"

@@ -1,8 +1,9 @@
 dataset:
   channels: 3
-  resolution:
+  resolution: 64
   path: dataset/DIV2K
   filetype: png
+  low_resolution: True
 generator:
   feature_maps: 64
 train:
