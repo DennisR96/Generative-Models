@@ -7,17 +7,26 @@ from PIL import Image
 import torch.nn.functional as F
 
 class MNIST(data.Dataset):
+    """
+    Custom Dataset for MNIST
+    """
     def __init__(self, config):
         self.config = config
+        
+        # Load Images and Labels
         self.images = self.load_images(config.dataset.path_images)
         self.labels = self.load_labels(config.dataset.path_labels)
         
+        # Transform
         self.transform =  transforms.Compose([
                 transforms.Resize((self.config.dataset.resolution, 
                                    self.config.dataset.resolution)),
                 transforms.ToTensor(),
                 transforms.Normalize((0.5,), (0.5,))])
     
+    
+    def lowres(self, batch):
+        return 
     def __len__(self):
         return len(self.labels)
     

@@ -1,3 +1,9 @@
+"""
+Model Implementations
+Generative Adversarial Networks:
+- Vanilla GAN
+- ESRGAN
+"""
 from .base import Base
 from torch import nn
 from torch.utils.data import DataLoader
@@ -5,11 +11,12 @@ import torch
 from tqdm import tqdm
 from torchvision.models import vgg19
 from torchmetrics.image import PeakSignalNoiseRatio, StructuralSimilarityIndexMeasure, LearnedPerceptualImagePatchSimilarity
+import torch.nn.functional as F
 
 
 class GAN(Base):
     def __init__(self, config, dataset, netD, netG):
-        super(GAN, self).__init__(config)  # Call the Base class initializer
+        super(GAN, self).__init__(*args)  # Call the Base class initializer
 
         self.config = config
         self.device = self.get_device()
@@ -27,6 +34,52 @@ class GAN(Base):
         # Optimizer
         self.optimizerG = self.get_optimizer(self.netG.parameters())
         self.optimizerD = self.get_optimizer(self.netD.parameters())
+        
+    def criterion(self, input, target_is_real, gan_type, is_disc=False, 
+             real_label_val=1.0, fake_label_val=0.0, loss_weight=1.0):
+        
+        """ 
+        Compute GAN Loss
+        
+        Args:
+            input (torch.Tensor)        Network Prediction
+            target_is_real (bool)       Whether the target is Real or Fake
+            gan_type (str)              Type of GAN Loss
+            is_disc (bool)              Is Discriminator Loss
+            real_label_val (float):     Value for real label.   Default: 1.0.
+            fake_label_val (float):     Value for fake label.   Default: 0.0.
+            loss_weight (float): Loss weight for generator. Default: 1.0.
+        
+        Returns: 
+            Tensor: Computed GAN Loss
+        """
+        # Vanilla – Binary Cross Entropy with Logits Loss.
+        if self.config.train.loss_gan == "vanilla":
+            loss_fn = nn.BCEWithLogitsLoss()
+            target_label = torch.full_like(input, real_label_val if target_is_real else fake_label_val)
+            loss = loss_fn(input, target_label)
+            
+        # LSGAN – Mean Squared Error Loss (MSELoss)
+        elif gan_type == "lsgan":
+            loss_fn = nn.MSELoss()
+            target_label = torch.full_like(input, real_label_val if target_is_real else fake_label_val)
+            loss = loss_fn(input, target_label)
+        
+        # WGAN – Wasserstein GAN Loss
+        elif gan_type == "wgan":
+            loss = -input.mean() if target_is_real else input.mean()
+            
+        elif gan_type == "wgan_softplus":
+            loss = F.softplus(-input).mean() if target_is_real else F.softplus(input).mean()
+        
+        # Hinge GAN Loss
+        elif gan_type == "hinge":
+            if is_disc:
+                input = -input if target_is_real else input
+                loss = F.relu(1 + input).mean()
+            else:
+                loss = -input.mean()
+        return loss if is_disc else loss * loss_weight
         
     def train(self):
         for epoch in tqdm(range(self.config.train.num_epochs), desc='Epochs'):
@@ -50,16 +103,16 @@ class GAN(Base):
         batch_size = images.size(0)
         
         ## Real and Fake Label Tensor
-        Real_Labels = torch.full((batch_size,), 1.0, dtype=torch.float, device=self.device)
-        Fake_Labels = torch.full((batch_size,), 0.0, dtype=torch.float, device=self.device)
+        #Real_Labels = torch.full((batch_size,), 1.0, dtype=torch.float, device=self.device)
+        #Fake_Labels = torch.full((batch_size,), 0.0, dtype=torch.float, device=self.device)
         
         # 1. Train Discriminator
         ## Real Images D_x
         self.netD.zero_grad()
         output = self.netD(images).view(-1)
-        errD_real = self.criterion(output, Real_Labels)
+        errD_real = self.criterion(output, True, config.gan)
         errD_real.backward()
-        D_x = output.mean().item()
+        #D_x = output.mean().item()
         
         ## Fake Images
         noise = torch.randn(batch_size, self.config.network.latent_vector, 1, 1, device=self.device)
@@ -92,6 +145,10 @@ class GAN(Base):
         return fake
     
 class ESRGAN(GAN):
+    """
+    Enhanced Super-Resolution GAN
+    https://arxiv.org/abs/1809.00219
+    """
     def __init__(self, config, dataset, netD, netG):
         super().__init__(config, dataset, netD, netG)
         
@@ -151,7 +208,7 @@ class ESRGAN(GAN):
         loss_pixel = self.criterion_l1(self.highres_fake, self.images)
 
         ## 2.2 Perceptual Loss (L1 (VGG19))
-        #loss_content = self.criterion_perceptual(highres_fake, images)
+        loss_content = self.criterion_perceptual(self.highres_fake, self.images)
 
         ## 2.3 Adversarial Loss 
         pred_real = self.netD(self.images).detach()
@@ -160,7 +217,7 @@ class ESRGAN(GAN):
 
         ## 2.4 Complete Loss
         ## add content loss back + loss_content
-        #L_G =  self.config.train.hyper_lambda * loss_GAN + self.config.train.hyper_eta * loss_pixel
+        L_G =  self.config.train.hyper_lambda * loss_GAN + self.config.train.hyper_eta * loss_pixel
         L_G = loss_GAN
         L_G.backward() 
         self.optimizerG.step() 
@@ -184,5 +241,3 @@ class ESRGAN(GAN):
         self.highres_fake = self.netG(self.lowres)
         combined_tensor = torch.cat((self.highres_fake[0:8], self.lowres[0:8]), dim=0)
         return combined_tensor
-        
-

@@ -1,3 +1,6 @@
+.DS-Store
 results/
 datasets/DIV2K/
+datasets/FFHQ/
 old/
+wandb/

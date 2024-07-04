@@ -1,25 +1,32 @@
+# 0. Logging
+log: "local"
+
+# 1. Dataset Configuration
 dataset:
-  name: "MNIST"
-  channels: 1
-  resolution: 64
-  path: datasets/MNIST
+  name: "FFHQ"
+  channels: 3
+  resolution: 256
+  path: datasets/FFHQ
   path_images: datasets/MNIST/train-images-idx3-ubyte.gz
   path_labels: datasets/MNIST/train-labels-idx1-ubyte.gz
-  lowres: True
+  lowres: False
+
+# 2. Network Configuration
 network:
-  channels: 1
   feature_maps: 64
   latent_vector: 100
   generator_input: 64
   generator_features: 64
-optim:
-  amsgrad: False
   optimizer: "Adam"
-  lr: 0.0001
+  amsgrad: False
+  lr: 0.001
   weight_decay: 0
   beta1: 0.9
+
+# 3. Training Configuration
 train:
-  batch_size: 64
+  batch_size: 1
+  loss_gan: "vanilla"
   num_epochs: 100
   hyper_lambda: 0.5
   hyper_eta: 0.5
