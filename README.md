@@ -1,5 +1,6 @@
 # Generative Models
 
+## Structure
 | Name | Purpose |
 | --- | --- |
 | config | YAML Files containing dataset, model and network configuration |
