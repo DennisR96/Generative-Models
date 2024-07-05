@@ -1,5 +1,6 @@
 import argparse, os, yaml
 import wandb
+import torch
 
 from utils.utils import dict2namespace
 from networks import load_network
@@ -25,17 +26,16 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     # Load Config YAML as Namespace 
-    config_path = "config/test.yaml"
+    config_path = "config/mnist.yaml"
     with open(os.path.join(args.config), "r") as f:
         config_yaml = yaml.safe_load(f)
     config = dict2namespace(config_yaml)
     
     # Logging
-    if config.log.wandb:
-        wandb.init(
-        project="my-awesome-project",
-        config=config_yaml)
-    
+    wandb.init(
+    project="my-awesome-project",
+    config=config_yaml)
+
     # Load Network
     network = load_network(config)
     
@@ -43,7 +43,7 @@ if __name__ == "__main__":
     dataset = load_dataset(config)
     
     # Load Model
-    model = load_model(config)
+    model = load_model(config, dataset, network)
     
     # Training
     model.train()

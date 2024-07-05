@@ -50,15 +50,21 @@ class Base():
         Args:
             parameters (_type_):    PyTorchModel.parameters()
         """
-        if self.config.network.optimizer == 'Adam':
-            return optim.Adam(parameters, lr=self.config.network.lr, weight_decay=self.config.network.weight_decay,
-                              betas=(self.config.network.beta1, 0.999), amsgrad=self.config.network.amsgrad)
-        elif self.config.network.optimizer == 'RMSProp':
-            return optim.RMSprop(parameters, lr=self.config.network.lr, weight_decay=self.config.network.weight_decay)
-        elif self.config.network.optimizer == 'SGD':
-            return optim.SGD(parameters, lr=self.config.network.lr, momentum=0.9)
+        if self.config.model.optimizer.name == 'ADAM':
+            return optim.Adam(parameters, lr=self.config.model.optimizer.lr, weight_decay=self.config.model.optimizer.weight_decay,
+                              betas=(self.config.model.optimizer.beta1, 0.999), amsgrad=self.config.model.optimizer.amsgrad)
+        elif self.config.model.optimizer.name == 'RMSProp':
+            return optim.RMSprop(parameters, lr=self.config.model.optimizer.lr, weight_decay=self.config.model.optimizer.weight_decay)
+        elif self.config.model.optimizer.name == 'SGD':
+            return optim.SGD(parameters, lr=self.config.model.optimizer.lr, momentum=0.9)
         else:
-            raise NotImplementedError('Optimizer {} not understood.'.format(self.config.network.optimizer))
+            raise NotImplementedError('Optimizer {} not understood.'.format(self.config.model.optimizer.name))
+        
+    def log_loss(self, **kwargs):
+        if self.config.log == "wandb":
+            wandb.log(kwargs)
+        return 0
+        
     
     def log_model(self, model, path):
         '''
@@ -91,10 +97,7 @@ class Base():
     
     def log_image_grid(self, images, epoch):
         grid = make_grid(images, padding=2, normalize=True)
-        
-        if self.config.log == "wandb":
-             wandb.log({"epoch": epoch, "image": wandb.Image(grid)})   
-        #save_image(grid, f"results/{epoch}_{self.config.dataset.name}.png")
+        wandb.log({"epoch": epoch, "image": wandb.Image(grid)})   
         return grid
         
     def get_scheduler(self):
@@ -115,7 +118,7 @@ class Base():
         return 0
     
     def train(self):
-        for epoch in tqdm(range(self.config.train.num_epochs), desc='Epochs'):
+        for epoch in tqdm(range(self.config.model.train.num_epochs), desc='Epochs'):
             for step, batch in enumerate(tqdm(self.dataloader, desc='Steps', leave=False)):
                 self.model_update_parameters(batch)
         return 0

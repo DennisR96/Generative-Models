@@ -1,0 +1,39 @@
+# 0. Logging
+log: "wandb"
+
+# 1. Dataset Configuration
+dataset:
+  name: "CELEBA"
+  channels: 3
+  resolution: 64
+  path: datasets/CELEBA
+  lowres: True
+
+# 2. Network Configuration
+network:
+  name: "DUMMY"
+  generator:
+    in_channels: 100
+    feat_channels: 128
+    out_channels: 3
+  discriminator:
+    in_channels: 3
+    out_channels: 64
+
+# 3. Model Configuration
+model:
+  name: "GAN"
+  resume:
+    active: False
+  dataloader:
+    batch_size: 128
+  optimizer:
+    name: "ADAM"
+    amsgrad: False
+    lr: 0.0002
+    weight_decay: 0
+    beta1: 0.9
+  loss:
+    gan: "vanilla"
+  train:
+    num_epochs: 100

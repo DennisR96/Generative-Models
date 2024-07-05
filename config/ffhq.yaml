@@ -4,28 +4,52 @@ log: "wandb"
 # 1. Dataset Configuration
 dataset:
   name: "FFHQ"
-  channels: 3
+  channels: 1
   resolution: 1024
   path: datasets/FFHQ
-  lowres: True
+  lowres: 32
+  diffusion:
+    strength: 0.4
 
 # 2. Network Configuration
 network:
-  feature_maps: 64
-  latent_vector: 100
-  generator_input: 64
-  generator_features: 64
-  optimizer: "Adam"
-  amsgrad: False
-  lr: 0.001
-  weight_decay: 0
-  beta1: 0.9
+  name: "ESRGAN+"
+  generator:
+    in_channels: 3
+    out_channels: 3
+    nf: 1024
+    nb: 4
+    gc: 32
+    upscale: 4
+    norm_type: None
+    act_type: "leakyrelu"
+    mode: "CNA"
+    upsample_mode: "upconv"
+  discriminator:
+    in_channels: 3
+    base_nf: 64
+    norm_type: "batch"
+    act_type: "leakyrelu"
+    mode: "CNA"
 
-# 3. Training Configuration
+# 3. Model Configuration
 model:
   name: "ESRGAN"
-  batch_size: 64
-  loss_gan: "vanilla"
-  num_epochs: 100
-  hyper_lambda: 0.5
-  hyper_eta: 0.5
+  dataloader:
+    batch_size: 128
+  optimizer:
+    name: "ADAM"
+    amsgrad: False
+    lr: 0.0002
+    weight_decay: 0
+    beta1: 0.9
+  resume:
+    active: True
+    generator: results/0_Generator.pth
+    discriminator: results/0_Discriminator.pth
+  loss:
+    gan: "vanilla"
+    hyper_lambda: 0.5
+    hyper_eta: 0.5
+  train:
+    num_epochs: 100

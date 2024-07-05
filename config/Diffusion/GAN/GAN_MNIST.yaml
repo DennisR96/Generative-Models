@@ -1,0 +1,25 @@
+"""
+GAN MNIST Dataset Testing Configuration
+"""
+# 0. Logging
+log: 
+    wandb: True
+
+# 1. Dataset
+dataset:
+  name: "MNIST"
+  channels: 1
+  resolution: 64
+  path: datasets/MNIST
+  path_images: datasets/MNIST/train-images-idx3-ubyte.gz
+  path_labels: datasets/MNIST/train-labels-idx1-ubyte.gz
+  lowres: False
+
+# 2. Model
+network:
+  name: "ESRGNA"
+
+# 3. Training
+train: 
+  name: "DDPM"
+

@@ -3,7 +3,7 @@ log: "local"
 
 # 1. Dataset Configuration
 dataset:
-  name: "FFHQ"
+  name: "DIV2k"
   channels: 3
   resolution: 256
   path: datasets/FFHQ

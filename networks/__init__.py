@@ -1,17 +1,18 @@
-from ddpm.unet import Unet
-import dummy.dummy
+from .ddpm.unet import Unet
+from .dummy import dummy 
+from .esrgan_plus.architecture import RRDBNet, Discriminator_VGG_128
 
-def load_network(config):
-    print("Hallo Welt")
-    
+def load_network(config): 
     if config.network.name == "DDPM":
         model = Unet(config)
         
-    if config.network.dummy == "DUMMY":
-        netG = dummy.dummy.Generator(config)
-        netD = dummy.dummy.Generator(config)
+    elif config.network.name == "DUMMY":
+        netG = dummy.Generator(config)
+        netD = dummy.Discriminator(config)
         return [netG, netD]
-        
-    if config.network.name == "ESRGAN":
-        model = 
+    
+    elif config.network.name == "ESRGAN+":
+        netG = RRDBNet(config)
+        netD = Discriminator_VGG_128(config)
+        return [netG, netD]
     return model

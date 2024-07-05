@@ -14,8 +14,8 @@ class MNIST(data.Dataset):
         self.config = config
         
         # Load Images and Labels
-        self.images = self.load_images(config.dataset.path_images)
-        self.labels = self.load_labels(config.dataset.path_labels)
+        self.images = self.load_images("datasets/MNIST/train-images-idx3-ubyte.gz")
+        self.labels = self.load_labels("datasets/MNIST/train-labels-idx1-ubyte.gz")
         
         # Transform
         self.transform =  transforms.Compose([

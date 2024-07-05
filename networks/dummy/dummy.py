@@ -1,60 +1,74 @@
 from torch import nn 
+import torch
+import torch.nn.functional as F
 
-# Generator Code
+
 class Generator(nn.Module):
     def __init__(self, config):
         super(Generator, self).__init__()
         self.config = config
-        self.main = nn.Sequential(
-            # input is Z, going into a convolution
-            nn.ConvTranspose2d( self.config.network.latent_vector, self.config.network.generator_features * 8, 4, 1, 0, bias=False),
-            nn.BatchNorm2d(self.config.network.generator_features * 8),
+        self.model = nn.Sequential(
+            # First transposed convolution layer
+            nn.ConvTranspose2d(self.config.network.generator.in_channels, self.config.network.generator.feat_channels, kernel_size=4, stride=1, padding=0, bias=False),
+            nn.BatchNorm2d(128),
             nn.ReLU(True),
-            # state size. ``(ngf*8) x 4 x 4``
-            nn.ConvTranspose2d(self.config.network.generator_features * 8, self.config.network.generator_features * 4, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(self.config.network.generator_features * 4),
+
+            # Second transposed convolution layer
+            nn.ConvTranspose2d(128, 64, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(64),
             nn.ReLU(True),
-            # state size. ``(ngf*4) x 8 x 8``
-            nn.ConvTranspose2d( self.config.network.generator_features * 4, self.config.network.generator_features * 2, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(self.config.network.generator_features * 2),
+
+            # Third transposed convolution layer
+            nn.ConvTranspose2d(64, 32, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(32),
             nn.ReLU(True),
-            # state size. ``(ngf*2) x 16 x 16``
-            nn.ConvTranspose2d( self.config.network.generator_features * 2, self.config.network.generator_features, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(self.config.network.generator_features),
+
+            # Fourth transposed convolution layer
+            nn.ConvTranspose2d(32, 16, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(16),
             nn.ReLU(True),
-            # state size. ``(ngf) x 32 x 32``
-            nn.ConvTranspose2d( self.config.network.generator_features, self.config.network.channels, 4, 2, 1, bias=False),
+
+            # Fifth transposed convolution layer
+            nn.ConvTranspose2d(16, self.config.network.generator.out_channels, kernel_size=4, stride=2, padding=1, bias=False),
             nn.Tanh()
-            # state size. ``(nc) x 64 x 64``
         )
 
-    def forward(self, input):
-        return self.main(input)
-
-
+    def forward(self, x):
+        return self.model(x)
+    
 class Discriminator(nn.Module):
-    def __init__(self, nc, ndf):
+    def __init__(self, config):
         super(Discriminator, self).__init__()
-        self.main = nn.Sequential(
-            # input is ``(nc) x 64 x 64``
-            nn.Conv2d(nc, ndf, 4, 2, 1, bias=False),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. ``(ndf) x 32 x 32``
-            nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ndf * 2),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. ``(ndf*2) x 16 x 16``
-            nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ndf * 4),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. ``(ndf*4) x 8 x 8``
-            nn.Conv2d(ndf * 4, ndf * 8, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ndf * 8),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. ``(ndf*8) x 4 x 4``
-            nn.Conv2d(ndf * 8, 1, 4, 1, 0, bias=False),
-            nn.Sigmoid()
-        )
+        self.config = config
+        
+        # Convolutional layers
+        self.conv1 = nn.Conv2d(self.config.network.discriminator.in_channels, 64, kernel_size=4, stride=2, padding=1)
+        self.conv2 = nn.Conv2d(64, 128, kernel_size=4, stride=2, padding=1)
+        self.conv3 = nn.Conv2d(128, 256, kernel_size=4, stride=2, padding=1)
+        self.conv4 = nn.Conv2d(256, 512, kernel_size=4, stride=2, padding=1)
+        
+        # Batch normalization layers
+        self.bn1 = nn.BatchNorm2d(64)
+        self.bn2 = nn.BatchNorm2d(128)
+        self.bn3 = nn.BatchNorm2d(256)
+        self.bn4 = nn.BatchNorm2d(512)
+        
+        # Fully connected layer
+        self.fc = nn.Linear(512*4*4, 1)
+        
+        # Leaky ReLU activation
+        self.leaky_relu = nn.LeakyReLU(0.2, inplace=True)
+        
+        # Sigmoid activation for output
+        self.sigmoid = nn.Sigmoid()
+    
+    def forward(self, x):
+        x = self.leaky_relu(self.bn1(self.conv1(x)))
+        x = self.leaky_relu(self.bn2(self.conv2(x)))
+        x = self.leaky_relu(self.bn3(self.conv3(x)))
+        x = self.leaky_relu(self.bn4(self.conv4(x)))
+        x = x.view(x.size(0), -1)
+        x = self.sigmoid(self.fc(x))
+        return x
 
-    def forward(self, input):
-        return self.main(input)
+Generator

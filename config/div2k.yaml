@@ -1,0 +1,53 @@
+# 0. Logging
+log: "wandb"
+
+# 1. Dataset Configuration
+dataset:
+  name: "DIV2K"
+  channels: 1
+  resolution: 128
+  path: datasets/DIV2k
+  lowres: 32
+
+# 2. Network Configuration
+network:
+  name: "ESRGAN+"
+  generator:
+    in_channels: 3
+    out_channels: 3
+    nf: 128
+    nb: 10
+    gc: 32
+    upscale: 4
+    norm_type: None
+    act_type: "leakyrelu"
+    mode: "CNA"
+    upsample_mode: "upconv"
+  discriminator:
+    in_channels: 3
+    base_nf: 64
+    norm_type: "batch"
+    act_type: "leakyrelu"
+    mode: "CNA"
+
+# 3. Model Configuration
+model:
+  name: "ESRGAN"
+  dataloader:
+    batch_size: 128
+  optimizer:
+    name: "ADAM"
+    amsgrad: False
+    lr: 0.0001
+    weight_decay: 0
+    beta1: 0.9
+  resume:
+    active: False
+    generator:
+    discriminator:
+  loss:
+    gan: "vanilla"
+    hyper_lambda: 0.005
+    hyper_eta: 0.01
+  train:
+    num_epochs: 100
