@@ -1,18 +1,31 @@
-import torchvision.datasets as datasets
 import os
+import zipfile
+
+import gdown
 from torchvision import transforms
 from torch.utils import data
 from PIL import Image
 import torch.nn.functional as F
-import torch
 
 class CELEBA(data.Dataset):
     def __init__(self, config):
         super(CELEBA, self).__init__()
         self.config = config
         
+        # Check if the directory exists
+        if not os.path.isdir("datasets/CELEBA"):
+            print("–– Downloading Dataset ––")
+            gdown.download(id="1oLjeNuWWOBlcaRUkw2J49BDEoFi3V1-g", output="celebA.zip")
+            with zipfile.ZipFile("celebA.zip", 'r') as zip_ref:
+                zip_ref.extractall("datasets/")
+            os.remove("celebA.zip")
+        else:
+            print("–– Dataset detected locally ––")
+        
         self.files = [i for i in os.listdir(config.dataset.path) if i.endswith(".jpg")]
         self.filepaths = [os.path.join(config.dataset.path, i) for i in self.files]
+        
+        # Transformation
         self.transform = transforms.Compose([
                 transforms.Resize((config.dataset.resolution, config.dataset.resolution)),
                 transforms.ToTensor(),

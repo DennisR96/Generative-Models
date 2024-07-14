@@ -18,7 +18,8 @@ config = dict2namespace(config_yaml)
 # 2. Logging
 wandb.init(
     project="my-awesome-project",
-    config=config_yaml)
+    config=config_yaml,
+    id="test123")
 
 # 2. Load Network
 network = load_network(config)
