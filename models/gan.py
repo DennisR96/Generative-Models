@@ -128,6 +128,7 @@ class ESRGAN(GAN):
         
         # Loss Functions
         self.criterion_l1 = nn.L1Loss()
+        self.criterion = nn.BCEWithLogitsLoss()
         
         # Metrics
         self.psnr = PeakSignalNoiseRatio().to(self.device)
