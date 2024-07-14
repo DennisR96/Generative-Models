@@ -14,8 +14,10 @@ def load_dataset(config):
         data.Dataset: Dataset Class
     """
     if config.dataset.name == "MNIST":
+        print("-- Dataset: MNIST --")
         return MNIST(config)
     elif config.dataset.name == "FFHQ":
+        print("-- Dataset: FFHQ --")
         return FFHQ(config)
     elif config.dataset.name == "DIV2K":
         print("-- Dataset: DIV2K --")

@@ -64,6 +64,12 @@ class Base():
         if self.config.log == "wandb":
             wandb.log(kwargs)
         return 0
+    
+    def log_metric(self):
+        ## FID
+        self.fid.update()
+        metric_fid = self.fid.compute()
+    
         
     
     def log_model(self, model, path):

@@ -1,36 +1,32 @@
-import os 
+import os
 import yaml
-from datasets import load_dataset
 from utils.utils import dict2namespace
-from torchvision.utils import save_image, make_grid
-
-from diffusers import AutoPipelineForImage2Image
 import torch
-from torchvision.transforms import ToPILImage
-from torch.utils.data import DataLoader
+import wandb
 
-from networks.esrgan_plus.architecture import RRDBNet, Discriminator_VGG_128
+from datasets import load_dataset
+from models import load_model
+from networks import load_network
 
-## Load Configuration
-config_path = "config/ffhq_diffusion.yaml"
+# 1. Load Configuration
+config_path = "config/celeba.yaml"
 with open(os.path.join(config_path), "r") as f:
     config_yaml = yaml.safe_load(f)
+
 config = dict2namespace(config_yaml)
 
-netG = RRDBNet(config).to("mps")
-netD = Discriminator_VGG_128(config).to("mps")
-x = torch.rand((64, 3, 128, 128)).to("mps")
-out = netG(x)
+# 2. Logging
+wandb.init(
+    project="my-awesome-project",
+    config=config_yaml)
 
-z = netD(out)
-print(z.shape)
+# 2. Load Network
+network = load_network(config)
 
+# 3. Load Dataset
+dataset = load_dataset(config) 
 
+# 4. Load Model
+model = load_model(config, dataset,network)
+model.train()
 
-# ffhq = load_dataset(config)
-
-# dl = DataLoader(ffhq, 16, shuffle=True)
-# x = next(iter(dl))
-
-# save_image(x["images"], "images.png", normalize=True)
-# save_image(x["lowres"], "lowres.png", normalize=True)

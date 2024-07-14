@@ -5,35 +5,50 @@ log: "wandb"
 dataset:
   name: "CELEBA"
   channels: 3
-  resolution: 64
+  resolution: 128
   path: datasets/CELEBA
   lowres: True
+  lowres_resolution: 32
 
 # 2. Network Configuration
 network:
-  name: "DUMMY"
+  name: "ESRGAN+"
   generator:
-    in_channels: 100
-    feat_channels: 128
+    in_channels: 3
     out_channels: 3
+    nf: 1024
+    nb: 4
+    gc: 32
+    upscale: 4
+    norm_type: None
+    act_type: "leakyrelu"
+    mode: "CNA"
+    upsample_mode: "upconv"
   discriminator:
     in_channels: 3
-    out_channels: 64
+    base_nf: 64
+    norm_type: "batch"
+    act_type: "leakyrelu"
+    mode: "CNA"
 
 # 3. Model Configuration
 model:
-  name: "GAN"
-  resume:
-    active: False
+  name: "ESRGAN"
   dataloader:
-    batch_size: 128
+    batch_size: 32
   optimizer:
     name: "ADAM"
     amsgrad: False
     lr: 0.0002
     weight_decay: 0
     beta1: 0.9
+  resume:
+    active: False
+    generator: results/0_Generator.pth
+    discriminator: results/0_Discriminator.pth
   loss:
     gan: "vanilla"
+    hyper_lambda: 0.5
+    hyper_eta: 0.5
   train:
     num_epochs: 100
