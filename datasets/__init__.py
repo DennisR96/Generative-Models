@@ -23,8 +23,5 @@ def load_dataset(config):
         print("-- Dataset: DIV2K --")
         return DIV2K(config)
     elif config.dataset.name == "CELEBA":
-        print("-- Dataset: CelebA --")
+        print("-- Dataset: CELEBA --")
         return CELEBA(config)
-        
-    
-    

@@ -22,14 +22,13 @@ class CELEBA(data.Dataset):
         else:
             print("–– Dataset detected locally ––")
         
-        self.files = [i for i in os.listdir(config.dataset.path) if i.endswith(".jpg")]
-        self.filepaths = [os.path.join(config.dataset.path, i) for i in self.files]
+        self.files = [i for i in os.listdir("datasets/CELEBA") if i.endswith(".jpg")]
+        self.filepaths = [os.path.join("datasets/CELEBA", i) for i in self.files]
         
         # Transformation
         self.transform = transforms.Compose([
                 transforms.Resize((config.dataset.resolution, config.dataset.resolution)),
-                transforms.ToTensor(),
-                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+                transforms.ToTensor(),])
     
     def lowres_batch(self, tensor_hr):
         tensor_lr = F.interpolate(tensor_hr.unsqueeze(0), 

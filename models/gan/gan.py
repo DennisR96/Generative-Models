@@ -4,7 +4,7 @@ Generative Adversarial Networks:
 - Vanilla GAN
 - ESRGAN
 """
-from .base import Base
+from ..base import Base
 from torch import nn
 from torch.utils.data import DataLoader
 import torch
@@ -24,7 +24,7 @@ class GAN(Base):
         self.device = self.get_device()
         
         # Dataloader
-        self.dataloader = DataLoader(dataset, batch_size=self.config.model.dataloader.batch_size, shuffle=True)
+        self.dataloader = DataLoader(dataset, batch_size=self.config.model.dataloader.batch_size, shuffle=True, num_workers=self.config.model.dataloader.num_workers)
         self.criterion = nn.BCELoss()
         
         # FID

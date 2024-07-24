@@ -1,0 +1,64 @@
+# 0. Basic Configuration
+log:
+  wandb: True
+  wandb_project:
+  local: True
+  step: 1000
+device: "mps"
+
+# 1. Dataset Configuration
+dataset:
+  name: "CELEBA"
+  channels: 3
+  resolution: 128
+  lowres: True
+  lowres_resolution: 32
+
+# 2. Dataset Configuration
+network:
+  name: "ESRGAN+"
+  net_G:
+    model": "RRDB_net"
+    act_type: "leakyrelu"
+    norm_type: null
+    mode: "CNA"
+    nf: 64
+    nb: 23
+    in_nc: 3
+    out_nc: 3
+    gc: 32
+    group: 1
+    upscale: 1
+    upsample_mode: "upconv"
+  net_D:
+    model: "discriminator_vgg_128"
+    norm_type: "batch"
+    act_type: "leakyrelu"
+    mode: "CNA"
+    nf: 64
+    in_nc: 3
+  net_F:
+    model: "vgg"
+    feature_layer: 34
+    use_bn: False
+    use_input_norm: True
+
+# 3. Model Configuration
+model:
+  name: "ESRGAN"
+  dataloader:
+    batch_size: 64
+    num_workers: 0
+  loss:
+    optimizer_G: "ADAM"
+    lr_G: 0.0001
+    wd_G: 0
+    beta1_G: 0.9
+    lr_D: 0.0001
+    wd_D: 0
+    beta1_D: 0.9
+    weight_pixel: 0.01
+    weight_feature: 1
+    weight_gan: 0.005
+  train:
+    num_epochs: 100

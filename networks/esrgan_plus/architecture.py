@@ -77,16 +77,16 @@ class RRDBNet(nn.Module):
         self.config = config
         
         ## Configruation
-        in_nc = self.config.network.generator.in_channels
-        out_nc = self.config.network.generator.out_channels
-        nf = self.config.network.generator.nf
-        nb = self.config.network.generator.nb
-        gc= self.config.network.generator.gc
-        upscale= self.config.network.generator.upscale
+        in_nc = self.config.network.net_G.in_nc
+        out_nc = self.config.network.net_G.out_nc
+        nf = self.config.network.net_G.nf
+        nb = self.config.network.net_G.nb
+        gc= self.config.network.net_G.gc
+        upscale= self.config.network.net_G.upscale
         norm_type=None
-        act_type=self.config.network.generator.act_type
-        mode=self.config.network.generator.mode
-        upsample_mode=self.config.network.generator.upsample_mode
+        act_type=self.config.network.net_G.act_type
+        mode=self.config.network.net_G.mode
+        upsample_mode=self.config.network.net_G.upsample_mode
         
         n_upscale = int(math.log(upscale, 2))
         if upscale == 3:
@@ -127,11 +127,11 @@ class Discriminator_VGG_128(nn.Module):
     def __init__(self, config):
         self.config = config
         
-        in_nc = self.config.network.discriminator.in_channels
-        base_nf = self.config.network.discriminator.base_nf
-        norm_type = self.config.network.discriminator.norm_type
-        act_type = self.config.network.discriminator.act_type
-        mode = self.config.network.discriminator.mode
+        in_nc = self.config.network.net_D.in_nc
+        base_nf = self.config.network.net_D.nf
+        norm_type = self.config.network.net_D.norm_type
+        act_type = self.config.network.net_D.act_type
+        mode = self.config.network.net_D.mode
         
         super(Discriminator_VGG_128, self).__init__()
         
@@ -315,12 +315,14 @@ class Discriminator_VGG_192(nn.Module):
 
 # Assume input range is [0, 1]
 class VGGFeatureExtractor(nn.Module):
-    def __init__(self,
-                 feature_layer=34,
-                 use_bn=False,
-                 use_input_norm=True,
-                 device=torch.device('cpu')):
+    def __init__(self, config):
         super(VGGFeatureExtractor, self).__init__()
+        
+        feature_layer = config.network.net_F.feature_layer
+        use_bn = config.network.net_F.use_bn
+        use_input_norm = config.network.net_F.use_input_norm
+        device = config.device
+        
         if use_bn:
             model = torchvision.models.vgg19_bn(pretrained=True)
         else:

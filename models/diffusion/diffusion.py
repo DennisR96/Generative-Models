@@ -1,4 +1,4 @@
-from .base import Base
+from ..base import Base
 import torch
 from tqdm import tqdm
 import torch.nn.functional as F 
