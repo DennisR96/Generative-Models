@@ -1,7 +1,11 @@
 import torch
 from torchmetrics.image import PeakSignalNoiseRatio, StructuralSimilarityIndexMeasure
+from torchvision.utils import make_grid, save_image
 from torch import nn
-from torch.utils.data import DataLoader
+import glob
+import os
+import wandb
+
 from tqdm import tqdm
 
 from ..base import Base
@@ -12,19 +16,19 @@ class ESRGAN(Base):
     https://arxiv.org/abs/1809.00219
     """
     def __init__(self, config, dataset, networks):
-        super().__init__(config)
-        self.config = config
-        
-        # Dataset
-        self.dataloader = DataLoader(dataset, 
-                                     batch_size=self.config.model.dataloader.batch_size, 
-                                     shuffle=True, 
-                                     num_workers=self.config.model.dataloader.num_workers)
+        super().__init__(config, dataset, networks)
         
         # Networks
         self.netG = networks[0].to(config.device)
         self.netD = networks[1].to(config.device)
         self.netF = networks[2].to(config.device)
+        
+        # Enable DataParallel on Multiple GPUs
+        if torch.cuda.device_count() > 1:
+            print("Running on", torch.cuda.device_count(), "GPUs")
+            self.netG = nn.DataParallel(self.netG)
+            self.netD = nn.DataParallel(self.netD)
+            self.netF = nn.DataParallel(self.netF)
         
         # Metrics
         self.psnr = PeakSignalNoiseRatio().to(config.device)
@@ -44,15 +48,83 @@ class ESRGAN(Base):
             self.scheduler_G = self.get_scheduler(self.optimizer_G)
             self.scheduler_D = self.get_scheduler(self.optimizer_D)
         
-        
         # Label Values
         self.real_label_val = 1.0
         self.fake_label_val = 0.0
         
+        self.epoch = 0
+        
+        # Load Previous Model
+        if self.config.resume.active:
+            self.model_load(self.config.resume.path)       
+    
+    def log(self, step):
+        if step == 0:
+            # Inference
+            highres_fake, lowres, images = self.inference()
+            
+            # Images 
+            highres_fake_tensor = make_grid(highres_fake)
+            lowres_tensor = make_grid(lowres)
+            images_tensor = make_grid(images)
+            
+            save_image(highres_fake_tensor, os.path.join(self.path, "inference", f"{self.epoch}_highres_fake.png"))
+            save_image(images_tensor, os.path.join(self.path, "inference", f"{self.epoch}_highres_real.png"))
+            save_image(lowres_tensor, os.path.join(self.path, "inference", f"{self.epoch}_lowres.png"))
+            
+            self.run["Highres_Fake"] = wandb.Image(highres_fake_tensor)
+            self.run["Highres_Real"] = wandb.Image(images_tensor)
+            self.run["Lowres"] = wandb.Image(lowres_tensor)
+            
+            # Metrics
+            self.run["SSIM"] = self.ssim(highres_fake, images).item()
+            self.run["PSNR"] = self.psnr(highres_fake, images).item()
+            
+            # Model
+            model_path = self.model_save()
+            wandb.log_model(model_path)
+            
+            # Wandb Log
+            wandb.log(self.run)
+            
+        else:
+            wandb.log(self.run)
+        return 0     
+        
+    
+    def model_load(self, path):
+        
+        # Load Checkpoint
+        checkpoint = torch.load(path)
+        
+        # Update Networks
+        self.netG.load_state_dict(checkpoint['netG_state_dict'])
+        self.netD.load_state_dict(checkpoint['netD_state_dict'])
+        
+        # Update Optimiziers
+        self.optimizer_G.load_state_dict(checkpoint['optimizerG_state_dict'])
+        self.optimizer_D.load_state_dict(checkpoint['optimizerD_state_dict'])
+        
+        self.epoch = checkpoint['epoch']
+        return 0
+    
+    def model_save(self):
+        directory = os.path.join(self.path, "models", f"{self.epoch}_{self.config.log.project}_{self.config.log.id}.pth")
+        torch.save(
+                        {
+                            'epoch': self.epoch,
+                            'netG_state_dict' : self.netG.state_dict(),
+                            'netD_state_dict' : self.netD.state_dict(),
+                            'optimizerG_state_dict' : self.optimizer_G.state_dict(),
+                            'optimizerD_state_dict' : self.optimizer_D.state_dict(),  
+                        },
+                        directory)
+        return directory     
     
     def train(self):
-        self.step_count = 0 
-        for epoch in tqdm(range(self.config.model.train.num_epochs), desc='Epochs'):
+        if self.config.resume.active:
+            print(f"-- Resuming Training at Epoch {self.epoch} --")
+        for epoch in tqdm(range(self.epoch, self.config.model.train.num_epochs), desc='Epochs'):
             for step, batch in enumerate(tqdm(self.dataloader, desc='Steps', leave=False)):
                 # -- 0. Create Batch and Labels -- 
                 self.highres = batch["images"].to(self.config.device)
@@ -110,6 +182,7 @@ class ESRGAN(Base):
                 
                 # 3. -- Logging --
                 self.run = {
+                    "Epoch" : epoch,
                     "Generator Loss" : l_g_total.item(),
                     "Discriminator Loss" : l_d_total.item(),
                     "Pixel Loss" : l_g_pix.item(),
@@ -118,32 +191,7 @@ class ESRGAN(Base):
                     "Learning Rate" : self.optimizer_G.param_groups[0]["lr"],
                 }
                 
-                if step % 100 == 0:
-                    # Inference
-                    highres_fake, lowres, images = self.inference()
-                    
-                    highres_fake_tensor = self.image_grid_tensor(highres_fake)
-                    lowres_tensor = self.image_grid_tensor(lowres)
-                    images_tensor = self.image_grid_tensor(images)
-                    
-                    self.inferences = {
-                            f"{epoch}_{step}_highres_real.png" : images_tensor,
-                            f"{epoch}_{step}_highres_fake.png" : highres_fake_tensor,
-                            f"{epoch}_{step}_lowres.png" : lowres_tensor,
-                    }
-                    
-                    # Metrics
-                    self.run["SSIM"] = self.ssim(highres_fake, images).item()
-                    self.run["PSNR"] = self.psnr(highres_fake, images).item()
-                    
-                    # Models
-                    self.models = {
-                        f"{epoch}_{step}_Generator.pth" : self.netG,
-                        f"{epoch}_{step}_Discriminator.pth" : self.netD,
-                    }
-                    self.log(self.run, self.models, self.inferences)                
-                else:
-                    self.log(self.run)
+                self.log(step)    
         return 0
     
     @torch.no_grad()
@@ -156,3 +204,5 @@ class ESRGAN(Base):
         # -- 1. Inference --
         highres_fake = self.netG(lowres)        
         return highres_fake, lowres, images
+            
+        

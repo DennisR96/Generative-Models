@@ -1,12 +1,12 @@
 # 0. Basic Configuration
-device: "mps"
+device: "cuda"
 log:
+  active: True
   project: "my-awesome-project"
-  id: "celebA_test_13"
-  resume: False
-  local: True
-  wandb: True
-  step: 1000
+  id: "celebA_Run_1"
+resume:
+  active: False
+  path: "results/my-awesome-project_celebA_test_17/models/22_my-awesome-project_celebA_test_17.pth"
 
 # 1. Dataset Configuration
 dataset:

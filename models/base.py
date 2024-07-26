@@ -1,11 +1,10 @@
 from torch import nn, optim
 import torch
-from torchmetrics.image.fid import FrechetInceptionDistance
-from torchmetrics.image import PeakSignalNoiseRatio
-from torchvision import transforms
+from torch.utils.data import DataLoader
 
 from torchvision.utils import make_grid, save_image
 from tqdm import tqdm
+from utils.utils import namespace2dict
 import wandb
 import pandas as pd
 import os
@@ -15,81 +14,32 @@ class Base():
     General Generative Model Class
     
     """    
-    def __init__(self, config):
+    def __init__(self, config, dataset, networks):
+        # -- 1. Configuration --
         self.config = config
         self.device = self.get_device()
         
-        # Create Run
-        self.path = f"results/{self.config.log.project}_{self.config.log.id}"
+        # -- 2. Dataloader -- 
+        self.dataloader = DataLoader(dataset, 
+                                     batch_size=self.config.model.dataloader.batch_size, 
+                                     shuffle=True, 
+                                     num_workers=self.config.model.dataloader.num_workers)
         
+        # -- 3. Project Folder -- 
+        self.path = f"results/{self.config.log.project}_{self.config.log.id}"
         if not os.path.isdir(self.path):
             os.makedirs(self.path)
             os.makedirs(os.path.join(self.path, "models"))
-            os.makedirs(os.path.join(self.path, "inference"))
-            os.makedirs(os.path.join(self.path, "logs"))
+            os.makedirs(os.path.join(self.path, "inference"))        
         
-        # Local
-        self.df = pd.DataFrame()
-        
-        # Wandb Logging
-        if self.config.log.wandb:
+        # -- 4. Wandb Logging -- 
+        if self.config.log.active:
+            config_dict = namespace2dict(config)
             wandb.init(
                 project=config.log.project,
-                config=config,
+                config=config_dict,
                 id=config.log.id) 
-            
         pass
-    
-    def log(self, run, models=None, inferences=None):
-        if self.config.log.local:
-            self.log_local(run, models, inferences)
-        if self.config.log.wandb:
-            self.log_wandb(run, models, inferences)
-        return 0
-        
-    def log_local(self, run, models=None, inferences=None):
-        # -- 1. Log Data -- 
-        if self.config.log.resume:
-            df = pd.read_csv(os.path.join(self.path, "logs", "log.csv"))
-            df_new = pd.DataFrame([run])
-            df = pd.concat([df, df_new],ignore_index=True)
-        else:
-            df = pd.DataFrame([run])
-            self.config.log.resume = True
-        df.to_csv(os.path.join(os.path.join(self.path, "logs", "log.csv")), index=False) 
-        
-        # -- 2. Log Models -- 
-        if models:
-            for name, model in models.items():
-                path = os.path.join(self.path, "models", name)
-                torch.save(model, path)
-        
-        # -- 3. Log Inferences --  
-        if inferences:
-            for name, value in inferences.items():
-                path = os.path.join(self.path, "inference", name)
-                save_image(value, path)
-        return 0  
-    
-    def log_wandb(self, run, models=None, inferences=None):
-        wandb_run = run
-        
-        if models:
-            for name, model in models.items():
-                path = os.path.join(self.path, "models", name)
-                wandb.log_model(path)
-        
-        if inferences:
-            for name, value in inferences.items():
-                value = value.cpu().numpy()
-                value = value.transpose(1, 2, 0)
-                wandb_run[name] = wandb.Image(value)
-        wandb.log(**wandb_run)
-        return 0
-             
-    
-    def get_dataloader(self):
-        return 
     
     def get_device(self):
         """
@@ -134,21 +84,7 @@ class Base():
         """
         if self.config.model.scheduler.name == 'MultiStepLR':
             return optim.lr_scheduler.MultiStepLR(optimizer, milestones=self.config.model.scheduler.milestones)
-        return 0
-    
-    def image_grid_tensor(self, batch, normalize=False):
-        """
-        Turn a batch into a Gird Image Tensor
-
-        Args:
-            batch (torch.Tensor):            Image Tensor of [B x C x H x W]
-            normalize (bool, optional):     _description_. Defaults to False.
-
-        Returns:
-            _type_: _description_
-        """
-        grid_tensor = make_grid(batch, normalize=normalize)
-        return grid_tensor    
+        return 0   
         
     def model_load(self, model, path):
         return model.load_state_dict(torch.load(path))
