@@ -47,53 +47,55 @@ class ESRGAN(L.LightningModule):
         # -- 0. Create Batch and Labels -- 
         highres = batch["images"]
         lowres = batch["lowres"]
-        
-        real_label = torch.ones((highres.shape[0], 1), device=self.device)
-        fake_label = torch.zeros((highres.shape[0], 1), device=self.device)
-        
-        is_last_batch_to_accumulate = (batch_idx + 1) % 2 == 0 or self.trainer.is_last_batch
-        
-        fake_H = self.netG(lowres)
-        
+                
         # -- 1. Update Generator --
-        with optimizer_G.toggle_model(sync_grad=is_last_batch_to_accumulate):
-            l_g_total = 0
-            
-            # -- 1.1 Pixel Loss --
-            l_g_pix = self.config.model.loss.weight_pixel * self.cri_pix(fake_H, highres)
-            l_g_total += l_g_pix
-            
-            # -- 1.2 Feature Loss --
-            real_fea = self.netF(highres).detach()
-            fake_fea = self.netF(fake_H)
-            l_g_fea = self.config.model.loss.weight_feature * self.cri_fea(fake_fea, real_fea)
-            l_g_total += l_g_fea
-            
-            # -- 1.3 GAN Loss -- 
-            pred_g_fake = self.netD(fake_H)
-            pred_d_real = self.netD(highres).detach()
-            
-            # -- 1.4 Total Generator Loss --
-            l_g_gan = self.config.model.loss.weight_gan * (self.cri_gan(pred_d_real - torch.mean(pred_g_fake), fake_label) +
-                                self.cri_gan(pred_g_fake - torch.mean(pred_d_real), real_label)) / 2 
-            l_g_total += l_g_gan
-            self.manual_backward(l_g_total)
-            
-            if is_last_batch_to_accumulate:
-                optimizer_G.step()
-                optimizer_G.zero_grad()
+        for p in self.netD.parameters():
+            p.requires_grad = False
+
+        optimizer_G.zero_grad()
+        self.fake_H = self.netG(lowres)
+                
+        l_g_total = 0
         
-        with optimizer_D.toggle_model(sync_grad=is_last_batch_to_accumulate):
-            l_d_total = 0
-            pred_d_real = self.netD(highres)
-            pred_d_fake = self.netD(fake_H.detach())
-            l_d_real = self.cri_gan(pred_d_real - torch.mean(pred_d_fake), real_label)
-            l_d_fake = self.cri_gan(pred_d_fake - torch.mean(pred_d_real), fake_label)
-            l_d_total = (l_d_real + l_d_fake) / 2
-            self.manual_backward(l_d_total)
-            if is_last_batch_to_accumulate:
-                optimizer_D.step()
-                optimizer_D.zero_grad()
+        # -- 1.1 Pixel Loss --
+        l_g_pix = self.config.model.loss.weight_pixel * self.cri_pix(self.fake_H, highres)
+        l_g_total += l_g_pix
+        
+        # -- 1.2 Feature Loss --
+        real_fea = self.netF(highres).detach()
+        fake_fea = self.netF(self.fake_H)
+        l_g_fea = self.config.model.loss.weight_feature * self.cri_fea(fake_fea, real_fea)
+        l_g_total += l_g_fea
+        
+        # -- 1.3 GAN Loss -- 
+        pred_g_fake = self.netD(self.fake_H)
+        pred_d_real = self.netD(highres).detach()
+        
+        real_labels = torch.empty_like(pred_d_real).fill_(self.real_label_val)
+        fake_labels = torch.empty_like(pred_g_fake).fill_(self.fake_label_val)
+    
+        l_g_gan = self.config.model.loss.weight_gan * (self.cri_gan(pred_d_real - torch.mean(pred_g_fake), fake_labels) +
+                                self.cri_gan(pred_g_fake - torch.mean(pred_d_real), real_labels)) / 2 
+        l_g_total += l_g_gan
+        self.manual_backward(l_g_total)
+        optimizer_G.step()
+        
+        # 2. -- Update Discriminator --
+        for p in self.netD.parameters():
+            p.requires_grad = True
+        
+        optimizer_D.zero_grad()
+        l_d_total = 0
+        
+        pred_d_real = self.netD(highres)
+        pred_d_fake = self.netD(self.fake_H.detach())  
+        
+        l_d_real = self.cri_gan(pred_d_real - torch.mean(pred_d_fake), real_labels)
+        l_d_fake = self.cri_gan(pred_d_fake - torch.mean(pred_d_real), fake_labels)
+
+        l_d_total = (l_d_real + l_d_fake) / 2
+        self.manual_backward(l_d_total)
+        optimizer_D.step()
         
         self.log_dict(
             {"Generator Loss": l_g_total, 
