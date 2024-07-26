@@ -1,6 +1,6 @@
 from .base import Base
 from .diffusion.diffusion import DDPM
-from .gan.esrgan import ESRGAN
+from .gan.esrgan_old import ESRGAN
 # from .gan.gan import GAN
 
 def load_model(config, dataset, network):

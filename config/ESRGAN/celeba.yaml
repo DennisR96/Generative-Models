@@ -1,9 +1,9 @@
 # 0. Basic Configuration
-device: "cuda"
+device: "mps"
 log:
   active: True
   project: "my-awesome-project"
-  id: "celebA_Run_B"
+  id: "celebA_Run_C"
 resume:
   active: False
   path: "results/my-awesome-project_celebA_test_17/models/22_my-awesome-project_celebA_test_17.pth"
