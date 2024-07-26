@@ -106,18 +106,19 @@ def sequential(*args):
     return nn.Sequential(*modules)
 
 class GaussianNoise(nn.Module):
-    def __init__(self, sigma=0.1, is_relative_detach=False):
-        super().__init__()
+    def __init__(self, sigma=0.1, is_relative_detach=False, ):
+        super().__init__()           
+        
         if torch.cuda.is_available():
             device = "cuda"
         elif torch.backends.mps.is_available():
             device = "mps"
         else:
-            device = "cpu"
-            
+            device = "cpu"    
+        
         self.sigma = sigma
         self.is_relative_detach = is_relative_detach
-        self.noise = torch.tensor(0, dtype=torch.float).to(torch.device(device))
+        self.noise = torch.tensor(0, dtype=torch.float, device=device)
         
 
     def forward(self, x):

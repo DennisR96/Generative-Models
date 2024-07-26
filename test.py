@@ -22,7 +22,6 @@ model = ESRGAN(config, network)
 
 # Load Dataset
 ds = CELEBA(config)
-train_dataloader = DataLoader(ds, batch_size=64, shuffle=True, num_workers=0, pin_memory=True,
-)
-trainer = L.Trainer(accelerator="cuda", fast_dev_run=7, profiler="simple")
+train_dataloader = DataLoader(ds, batch_size=64, shuffle=True, num_workers=12, pin_memory=True, multiprocessing_context="fork")
+trainer = L.Trainer(accelerator="mps", fast_dev_run=50, profiler="simple")
 trainer.fit(model=model, train_dataloaders=train_dataloader)
