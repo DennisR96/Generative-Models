@@ -47,6 +47,9 @@ class ESRGAN(L.LightningModule):
         # -- 0. Create Batch and Labels -- 
         highres = batch["images"]
         lowres = batch["lowres"]
+        
+        real_labels = torch.ones((highres.shape[0], 1), device=self.device)
+        fake_labels = torch.zeros((highres.shape[0], 1), device=self.device)
                 
         # -- 1. Update Generator --
         for p in self.netD.parameters():
@@ -70,9 +73,6 @@ class ESRGAN(L.LightningModule):
         # -- 1.3 GAN Loss -- 
         pred_g_fake = self.netD(self.fake_H)
         pred_d_real = self.netD(highres).detach()
-        
-        real_labels = torch.empty_like(pred_d_real).fill_(self.real_label_val)
-        fake_labels = torch.empty_like(pred_g_fake).fill_(self.fake_label_val)
     
         l_g_gan = self.config.model.loss.weight_gan * (self.cri_gan(pred_d_real - torch.mean(pred_g_fake), fake_labels) +
                                 self.cri_gan(pred_g_fake - torch.mean(pred_d_real), real_labels)) / 2 
