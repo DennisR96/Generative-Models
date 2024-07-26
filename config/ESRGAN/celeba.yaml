@@ -3,7 +3,7 @@ device: "cuda"
 log:
   active: True
   project: "my-awesome-project"
-  id: "celebA_Run_1"
+  id: "celebA_Run_B"
 resume:
   active: False
   path: "results/my-awesome-project_celebA_test_17/models/22_my-awesome-project_celebA_test_17.pth"
