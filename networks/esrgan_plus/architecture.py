@@ -324,14 +324,14 @@ class VGGFeatureExtractor(nn.Module):
         device = config.device
         
         if use_bn:
-            model = torchvision.models.vgg19_bn(pretrained=True)
+            model = torchvision.models.vgg19_bn(weights='IMAGENET1K_V1')
         else:
-            model = torchvision.models.vgg19(pretrained=True)
+            model = torchvision.models.vgg19(weights='IMAGENET1K_V1')
         self.use_input_norm = use_input_norm
         if self.use_input_norm:
-            mean = torch.Tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1).to(device)
+            mean = torch.tensor([0.485, 0.456, 0.406], device=device).view(1, 3, 1, 1)
             # [0.485-1, 0.456-1, 0.406-1] if input in range [-1,1]
-            std = torch.Tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1).to(device)
+            std = torch.tensor([0.229, 0.224, 0.225], device=device).view(1, 3, 1, 1)
             # [0.229*2, 0.224*2, 0.225*2] if input in range [-1,1]
             self.register_buffer('mean', mean)
             self.register_buffer('std', std)

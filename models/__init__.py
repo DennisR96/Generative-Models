@@ -1,14 +1,15 @@
 from .base import Base
 from .diffusion.diffusion import DDPM
-from .gan.esrgan_old import ESRGAN
-# from .gan.gan import GAN
+from .gan.gan import GAN
+from .gan.esrgan import ESRGAN
 
-def load_model(config, dataset, network):
+
+def load_model(config, network):
     if config.model.name == "DDPM":
-        return DDPM(config, dataset, network)
-    # elif config.model.name == "GAN":
-    #     return GAN(config, dataset, network)
+        return DDPM(config, network)
+    elif config.model.name == "GAN":
+        return GAN(config, network)
     elif config.model.name == "ESRGAN":
-        return ESRGAN(config, dataset, network)
+        return ESRGAN(config, network)
     else:
         raise ValueError(f"Unknown model type: {config.model.name}")

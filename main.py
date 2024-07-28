@@ -1,54 +1,55 @@
-import argparse, os, yaml
-import wandb
-import torch
-
-from utils.utils import dict2namespace
-from networks import load_network
+import os, yaml
 from datasets import load_dataset
+from utils.utils import dict2namespace
+
+from networks import load_network
 from models import load_model
 
-def get_parser(**parser_kwargs):
-    parser = argparse.ArgumentParser(**parser_kwargs)
-    
-    parser.add_argument(
-        "-c",
-        "--config",
-        type=str,
-        default="config/config.yaml",
-        help="path to the YAML configuration file"
+import lightning as L
+import lightning.pytorch.loggers as loggers
+import lightning.pytorch.callbacks as callbacks
+
+# -- 1. Load Configuration --
+config_path = "config/ESRGAN/celeba.yaml"
+with open(os.path.join(config_path), "r") as f:
+    config_yaml = yaml.safe_load(f)
+
+config = dict2namespace(config_yaml)  
+
+# -- 2. Dataset --
+dm = load_dataset(config)
+dm.setup()
+
+batch = next(iter(dm.train_dataloader()))
+
+# -- 3. Network -- 
+network = load_network(config)
+
+# -- 4. Model -- 
+model = load_model(config, network)
+
+# -- 5. Trainer -- 
+# Loggers
+TensorBoard = loggers.TensorBoardLogger(
+    save_dir=f"results/{config.log.project}",
+    version={config.log.id},
     )
-    return parser
 
+# Callbacks
+checkpoint = callbacks.ModelCheckpoint(
+    save_last=True,
+    save_top_k=-1,
+    every_n_epochs=3,
+    )
 
-if __name__ == "__main__":
-    # Parser
-    parser = get_parser()
-    args = parser.parse_args()
-    
-    # Load Config YAML as Namespace 
-    config_path = "config/mnist.yaml"
-    with open(os.path.join(args.config), "r") as f:
-        config_yaml = yaml.safe_load(f)
-    config = dict2namespace(config_yaml)
-    
-    # Logging
-    wandb.init(
-    project="my-awesome-project",
-    config=config_yaml)
+lr_scheduler = callbacks.LearningRateMonitor(logging_interval="step")
 
-    # Load Network
-    network = load_network(config)
-    
-    # Load Dataset
-    dataset = load_dataset(config)
-    
-    # Load Model
-    model = load_model(config, dataset, network)
-    
-    # Training
-    model.train()
-    
-    
-    
-    
-    
+# Trainer
+trainer = L.Trainer(
+    default_root_dir="results", 
+    callbacks=[checkpoint, lr_scheduler],
+    accelerator="mps", 
+    log_every_n_steps=10, 
+    logger=[TensorBoard],)
+
+trainer.fit(model, dm)

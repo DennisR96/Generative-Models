@@ -1,53 +1,61 @@
+import lightning as L
 import os
-import zipfile
-
 import gdown
+import zipfile
+from torch.utils.data import DataLoader, random_split
 from torchvision import transforms
-from torch.utils import data
-from PIL import Image
+from torch.utils.data import Dataset
+from torchvision.io import read_image
 import torch.nn.functional as F
+from PIL import Image
 
-class CELEBA(data.Dataset):
+
+class DATASET_CELEBA(Dataset):
     def __init__(self, config):
-        super(CELEBA, self).__init__()
+        self.config = config
+        self.files = [i for i in os.listdir("datasets/CELEBA") if i.endswith(".jpg")]
+        self.filepaths = [os.path.join("datasets/CELEBA", i) for i in self.files]
+        self.transform = transforms.Compose([
+                transforms.Resize((config.dataset.resolution, config.dataset.resolution)),
+                transforms.ToTensor(),])
+    
+    def __getitem__(self, index):
+        path = self.filepaths[index]
+        img = Image.open(path).convert('RGB') 
+        img = self.transform(img)
+        lowres = F.interpolate(img.unsqueeze(0), 
+                                size=(self.config.dataset.lowres_resolution, self.config.dataset.lowres_resolution), 
+                                mode='bicubic', 
+                                align_corners=False).squeeze(0) 
+        return {"images" : img, 
+                "lowres": lowres,}
+    
+    def __len__(self):
+        return len(self.filepaths)
+
+
+class CELEBA(L.LightningDataModule):
+    def __init__(self, config):
+        super().__init__()
         self.config = config
         
-        # Check if the directory exists
+    def prepare_data(self):
+        # Download Dataset
         if not os.path.isdir("datasets/CELEBA"):
-            print("–– Downloading Dataset ––")
+            print("Downloading Dataset")
             gdown.download(id="1oLjeNuWWOBlcaRUkw2J49BDEoFi3V1-g", output="celebA.zip")
             with zipfile.ZipFile("celebA.zip", 'r') as zip_ref:
                 zip_ref.extractall("datasets/")
             os.remove("celebA.zip")
         else:
-            print("–– Dataset detected locally ––")
+            print("Dataset detected")
+            
+    def setup(self, stage=None):
+        self.dataset = DATASET_CELEBA(self.config)
         
-        self.files = [i for i in os.listdir("datasets/CELEBA") if i.endswith(".jpg")]
-        self.filepaths = [os.path.join("datasets/CELEBA", i) for i in self.files]
-        
-        # Transformation
-        self.transform = transforms.Compose([
-                transforms.Resize((config.dataset.resolution, config.dataset.resolution)),
-                transforms.ToTensor(),])
+    def train_dataloader(self):
+        return DataLoader(self.dataset, batch_size=self.config.dataset.batch_size, num_workers=self.config.dataset.num_workers)
     
-    def lowres_batch(self, tensor_hr):
-        tensor_lr = F.interpolate(tensor_hr.unsqueeze(0), 
-                                size=(self.config.dataset.lowres_resolution, self.config.dataset.lowres_resolution), 
-                                mode='bicubic', 
-                                align_corners=False).squeeze(0) 
-        return tensor_lr
-    
-    def __getitem__(self, index):
-        path = self.filepaths[index]
-        img = Image.open(path).convert('RGB') 
-        
-        tensor = self.transform(img) 
-        tensor_lr = self.lowres_batch(tensor)
-        
-        output = {"images" : tensor,
-                  "lowres" : tensor_lr}
-        return output
-    
-    def __len__(self):
-        return len(self.filepaths)
-    
+
+
+

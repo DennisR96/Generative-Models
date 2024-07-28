@@ -1,12 +1,13 @@
-from torch.utils import data
-import torchvision.datasets as datasets
+from lightning.pytorch.utilities.types import TRAIN_DATALOADERS
+from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 import gzip
 import numpy as np 
 from PIL import Image
-import torch.nn.functional as F
+import lightning as L
 
-class MNIST(data.Dataset):
+
+class DATASET_MNIST(Dataset):
     """
     Custom Dataset for MNIST
     """
@@ -21,12 +22,8 @@ class MNIST(data.Dataset):
         self.transform =  transforms.Compose([
                 transforms.Resize((self.config.dataset.resolution, 
                                    self.config.dataset.resolution)),
-                transforms.ToTensor(),
-                transforms.Normalize((0.5,), (0.5,))])
+                transforms.ToTensor(),])
     
-    
-    def lowres(self, batch):
-        return 
     def __len__(self):
         return len(self.labels)
     
@@ -42,17 +39,6 @@ class MNIST(data.Dataset):
             "images" : image,
             "labels" : label,
         }
-        
-        if self.config.dataset.lowres:
-            lowres = F.interpolate(image.unsqueeze(0), 
-                                  size=(16, 16), 
-                                  mode='bicubic', 
-                                  align_corners=False).squeeze(0)
-            lowres = F.interpolate(lowres.unsqueeze(0), 
-                                   size=(64, 64), 
-                                   mode='bicubic', 
-                                   align_corners=False).squeeze(0)
-            output["lowres"] = lowres    
         return output
     
     def load_images(self, path):
@@ -70,3 +56,14 @@ class MNIST(data.Dataset):
             num_labels = int.from_bytes(f.read(4), byteorder='big')
             labels = np.frombuffer(f.read(), dtype=np.uint8)
             return labels
+
+class MNIST(L.LightningDataModule):
+    def __init__(self, config):
+        super().__init__()
+        self.config = config
+        
+    def setup(self, stage=None):
+        self.dataset = DATASET_MNIST(self.config)
+    
+    def train_dataloader(self):
+        return DataLoader(self.dataset, batch_size=self.config.dataset.batch_size, num_workers=self.config.dataset.num_workers)
