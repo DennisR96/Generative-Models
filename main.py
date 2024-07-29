@@ -31,15 +31,17 @@ model = load_model(config, network)
 # -- 5. Trainer -- 
 # Loggers
 TensorBoard = loggers.TensorBoardLogger(
-    save_dir=f"results/{config.log.project}",
-    version={config.log.id},
+    save_dir=f"results/",
+    name=config.log.project,
+    version=config.log.id,
     )
 
 # Callbacks
 checkpoint = callbacks.ModelCheckpoint(
+    dirpath=f"results/{config.log.project}/{config.log.id}/Checkpoints",
     save_last=True,
     save_top_k=-1,
-    every_n_epochs=3,
+    every_n_epochs=1,
     )
 
 lr_scheduler = callbacks.LearningRateMonitor(logging_interval="step")
@@ -48,8 +50,10 @@ lr_scheduler = callbacks.LearningRateMonitor(logging_interval="step")
 trainer = L.Trainer(
     default_root_dir="results", 
     callbacks=[checkpoint, lr_scheduler],
-    accelerator="mps", 
+    accelerator="auto", 
     log_every_n_steps=10, 
-    logger=[TensorBoard],)
+    logger=[TensorBoard],
+    max_epochs=10000,
+    limit_train_batches=2)
 
-trainer.fit(model, dm)
+trainer.fit(model, dm, ckpt_path="last")
