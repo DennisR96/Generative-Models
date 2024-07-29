@@ -1,5 +1,5 @@
 # 0. Basic Configuration
-device: "mps"
+device: "cuda"
 log:
   active: True
   project: "my-awesome-project"
