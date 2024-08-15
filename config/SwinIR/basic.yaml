@@ -1,0 +1,30 @@
+network:
+  name: "SwinIR"
+  net_G:
+    upscale: 2
+    in_chans: 3
+    img_size: 64
+    patch_size: 1
+    patch_norm: True
+    window_size: 8
+    img_range: 1.0
+    depths: [6, 6, 6, 6]
+    embed_dim: 60
+    num_heads: [6, 6, 6, 6]
+    mlp_ratio: 2
+    upsampler: "pixelshuffledirect" # "pixelshuffle" | "pixelshuffledirect" | "nearest+conv" | null
+    resi_connection: 1conv # "1conv" | "3conv"
+    init_type: default
+    qkv_bias: False
+    qk_scale: NULL
+    ape: False
+    drop_rate: 0
+    attn_drop_rate: 0
+    drop_path_rate: 0.1
+    use_checkpoint: False
+# img_size=64, patch_size=1, in_chans=3,
+#                  embed_dim=96, depths=[6, 6, 6, 6], num_heads=[6, 6, 6, 6],
+#                  window_size=7, mlp_ratio=4., qkv_bias=True, qk_scale=None,
+#                  drop_rate=0., attn_drop_rate=0., drop_path_rate=0.1,
+#                  norm_layer=nn.LayerNorm, ape=False, patch_norm=True,
+#                  use_checkpoint=False, upscale=2, img_range=1., upsampler='', resi_connection='1conv',

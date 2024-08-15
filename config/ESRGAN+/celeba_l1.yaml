@@ -1,9 +1,9 @@
 # 0. Basic Configuration
-device: "cuda"
+device: "mps"
 log:
   active: True
   project: "my-awesome-project"
-  id: "Trial_1"
+  id: "Trial_3_L1"
 
 # 1. Dataset Configuration
 dataset:
@@ -49,17 +49,17 @@ model:
   optimizer:
     name: "ADAM"
     amsgrad: False
-    lr: 0.0001
+    lr: 0.001
     weight_decay: 0
     beta1: 0.9
     beta2: 0.999
   loss:
-    weight_pixel: 0.01
-    weight_feature: 1
-    weight_gan: 0.005
+    weight_pixel: 1
+    weight_feature: 0
+    weight_gan: 0
   scheduler:
     name: "MultiStepLR"
-    milestones: [50000, 100000, 200000, 300000]
+    milestones: [1000, 5000, 100000] #[50000, 100000, 200000, 300000]
     gamma: 0.5
   resume:
     active: False

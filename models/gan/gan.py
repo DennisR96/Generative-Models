@@ -2,7 +2,7 @@ from typing import Any
 import lightning as L
 from torch import nn
 import torch
-from torchvision.utils import save_image, make_grid
+from torchvision.utils import make_grid
 from utils.utils import namespace2dict
 
 class GAN(L.LightningModule):

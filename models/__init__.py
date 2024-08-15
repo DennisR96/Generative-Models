@@ -2,6 +2,7 @@ from .base import Base
 from .diffusion.diffusion import DDPM
 from .gan.gan import GAN
 from .gan.esrgan import ESRGAN
+from .gan.srgan import SRGAN
 
 
 def load_model(config, network):
@@ -9,6 +10,8 @@ def load_model(config, network):
         return DDPM(config, network)
     elif config.model.name == "GAN":
         return GAN(config, network)
+    elif config.model.name == "SRGAN":
+        return SRGAN(config, network)
     elif config.model.name == "ESRGAN":
         return ESRGAN(config, network)
     else:

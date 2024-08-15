@@ -1,0 +1,64 @@
+# 0. Basic Configuration
+device: "mps"
+log:
+  active: True
+  project: "my-awesome-project"
+  id: "PERCEPTION_ESRGAN_DIFF_FFHQ"
+
+# 1. Dataset Configuration
+dataset:
+  name: "FFHQ"
+  batch_size: 3
+  channels: 3
+  num_workers: 0
+  resolution: 128
+  lowres_resolution: 32
+
+# 2. Network Configuration
+network:
+  name: "ESRGAN"
+  net_G:
+    model": "RRDBNet"
+    pretrained: "results/my-awesome-project/PSNR_ESRGAN_DIFF_FFHQ/Checkpoints/epoch=14999-step=30000.ckpt"
+    num_in_ch: 3
+    num_out_ch: 3
+    scale: 1
+    num_feat: 64
+    num_block: 6
+    num_grow_ch: 32
+  net_D:
+    model: "discriminator_vgg_128"
+    num_in_ch: 3
+    num_feat: 64
+    input_size: 128
+  net_F:
+    layer_weights:
+      "conv5_4": 1
+    vgg_type: "vgg19"
+    use_input_norm: True
+    range_norm: False
+    requires_grad: False
+    remove_pooling: False
+    pooling_stride: 2
+# 3. Model Configuration
+model:
+  name: "ESRGAN"
+  optimizer:
+    name: "ADAM"
+    amsgrad: False
+    lr: 0.001
+    weight_decay: 0
+    beta1: 0.9
+    beta2: 0.999
+  loss:
+    weight_pixel: 0.01
+    weight_feature: 1
+    weight_gan: 0.005
+  scheduler:
+    name:
+    milestones: [2500, 5000, 10000, 20000]
+    gamma: 0.5
+  resume:
+    active: False
+  train:
+    num_epochs: 100

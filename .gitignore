@@ -3,5 +3,7 @@ results/
 datasets/DIV2K/
 datasets/FFHQ/
 datasets/CelebA/
+datasets/FFHQ_DIFF/
 old/
 wandb/
+client_secrets.json

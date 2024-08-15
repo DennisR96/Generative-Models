@@ -10,7 +10,7 @@ import lightning.pytorch.loggers as loggers
 import lightning.pytorch.callbacks as callbacks
 
 # -- 1. Load Configuration --
-config_path = "config/ESRGAN/celeba.yaml"
+config_path = "config/ESRGAN/ffhq.yaml"
 with open(os.path.join(config_path), "r") as f:
     config_yaml = yaml.safe_load(f)
 
@@ -19,8 +19,6 @@ config = dict2namespace(config_yaml)
 # -- 2. Dataset --
 dm = load_dataset(config)
 dm.setup()
-
-batch = next(iter(dm.train_dataloader()))
 
 # -- 3. Network -- 
 network = load_network(config)
@@ -41,7 +39,7 @@ checkpoint = callbacks.ModelCheckpoint(
     dirpath=f"results/{config.log.project}/{config.log.id}/Checkpoints",
     save_last=True,
     save_top_k=-1,
-    every_n_epochs=100,
+    every_n_epochs=1000,
     )
 
 lr_scheduler = callbacks.LearningRateMonitor(logging_interval="step")
@@ -53,7 +51,7 @@ trainer = L.Trainer(
     accelerator="auto", 
     log_every_n_steps=10, 
     logger=[TensorBoard],
-    max_epochs=1000,
+    max_epochs=100000,
     overfit_batches=1)
 
 trainer.fit(model, dm, ckpt_path="last")

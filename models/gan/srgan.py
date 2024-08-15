@@ -5,37 +5,23 @@ from utils.utils import namespace2dict
 from torchvision.utils import make_grid
 from torchmetrics.image import PeakSignalNoiseRatio, StructuralSimilarityIndexMeasure
 
-class ESRGAN(L.LightningModule):
+class SRGAN(L.LightningModule):
     """
-    ESRGAN: Enhanced Super-Resolution Generative Adversarial Networks
+    SRGAN: Enhanced Super-Resolution Generative Adversarial Networks
     https://arxiv.org/abs/1809.00219
     """
     def __init__(self, config, networks):
         super().__init__()
         self.config = config
+        self.layer_weights = namespace2dict(self.config.network.net_F.layer_weights)
         self.save_hyperparameters(namespace2dict(config))
         self.automatic_optimization = False
         
         # Networks
         self.netG = networks[0]
         self.netD = networks[1]
-        self.netF = networks[2]
-        
-        # Load Pre-Trained Generator 
-        if self.config.network.net_G.pretrained:
-            print(self.netG.body[0].rdb3.conv3.bias)
-            checkpoint = torch.load(self.config.network.net_G.pretrained)
-            state_dict = checkpoint["state_dict"]
-            net_G_state_dict = {
-                key.replace("netG.", ""): value
-                for key, value in state_dict.items()
-                if key.startswith("netG.")
-            }
-            self.netG.load_state_dict(net_G_state_dict, strict=True)
-            print(self.netG.body[0].rdb3.conv3.bias)
         
         # Loss
-        self.cri_fea = nn.L1Loss()
         self.cri_pix = nn.L1Loss()
         self.cri_gan = nn.BCEWithLogitsLoss()
         
@@ -60,25 +46,29 @@ class ESRGAN(L.LightningModule):
                             lr=self.config.model.optimizer.lr, 
                             weight_decay=self.config.model.optimizer.weight_decay,
                             betas=(self.config.model.optimizer.beta1, 0.999), 
-                            amsgrad=self.config.model.optimizer.amsgrad) 
+                            amsgrad=self.config.model.optimizer.amsgrad)
         return [optimizer_G, optimizer_D]
     
-    def on_train_epoch_end(self):   
+    def on_train_epoch_end(self):
+        SSIM =  self.ssim(self.fake_H, self.highres).item()
+        PSNR = self.psnr(self.fake_H, self.highres).item()
+        
         for logger in self.loggers:
             logger.experiment.add_image("lowres", make_grid(self.lowres), self.current_epoch)
             logger.experiment.add_image("highres", make_grid(self.highres), self.current_epoch)
             logger.experiment.add_image("highres_fake", make_grid(self.fake_H), self.current_epoch)
             logger.log_metrics(
                 {
-                    "SSIM" : self.ssim(self.fake_H, self.highres).item(), 
-                    "PSNR" : self.psnr(self.fake_H, self.highres).item()}, 
+                    "SSIM" : SSIM, 
+                    "PSNR" : PSNR
+                }, 
                 self.current_epoch)  
         return 0
     
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch, batch_idx):        
         # -- 0. Create Batch and Labels -- 
         optimizer_G, optimizer_D = self.optimizers()
-
+           
         self.highres = batch["images"]
         self.lowres = batch["lowres"]
         batch_size = self.highres.shape[0]
@@ -95,19 +85,6 @@ class ESRGAN(L.LightningModule):
         # -- 1.1 Pixel Loss --
         l_g_pix = self.config.model.loss.weight_pixel * self.cri_pix(self.fake_H, self.highres)
         l_g_total += l_g_pix
-        
-        # # -- 1.2 Feature Loss --
-        real_fea = self.netF(self.highres).detach()
-        fake_fea = self.netF(self.fake_H)
-        l_g_fea = self.config.model.loss.weight_feature * self.cri_fea(fake_fea, real_fea)
-        l_g_total += l_g_fea
-        
-        # -- 1.3 GAN Loss -- 
-        pred_g_fake = self.netD(self.fake_H)
-        pred_d_real = self.netD(self.highres).detach()
-        l_g_gan = self.config.model.loss.weight_gan * (self.cri_gan(pred_d_real - torch.mean(pred_g_fake), fake_labels) +
-                                self.cri_gan(pred_g_fake - torch.mean(pred_d_real), real_labels)) / 2 
-        l_g_total += l_g_gan
         self.manual_backward(l_g_total)
         optimizer_G.step()
         self.untoggle_optimizer(optimizer_G)
@@ -129,8 +106,6 @@ class ESRGAN(L.LightningModule):
         self.log("Generator Loss", l_g_total)
         self.log("Discriminator Loss", l_d_total)
         self.log("Pixel Loss", l_g_pix)
-        self.log("Feature Loss", l_g_fea)
-        self.log("GAN Loss", l_g_gan)
         
         
 

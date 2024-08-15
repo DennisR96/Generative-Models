@@ -2,10 +2,9 @@ import lightning as L
 import os
 import gdown
 import zipfile
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader
 from torchvision import transforms
 from torch.utils.data import Dataset
-from torchvision.io import read_image
 import torch.nn.functional as F
 from PIL import Image
 

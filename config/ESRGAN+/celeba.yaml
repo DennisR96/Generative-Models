@@ -1,0 +1,67 @@
+# 0. Basic Configuration
+device: "mps"
+log:
+  active: True
+  project: "my-awesome-project"
+  id: "Trial_3_Perception"
+
+# 1. Dataset Configuration
+dataset:
+  name: "CELEBA"
+  batch_size: 64
+  channels: 3
+  num_workers: 0
+  resolution: 128
+  lowres_resolution: 32
+
+# 2. Dataset Configuration
+network:
+  name: "ESRGAN+"
+  net_G:
+    model": "RRDB_net"
+    act_type: "leakyrelu"
+    norm_type: null
+    mode: "CNA"
+    nf: 64
+    nb: 23
+    in_nc: 3
+    out_nc: 3
+    gc: 32
+    group: 1
+    upscale: 4
+    upsample_mode: "upconv"
+  net_D:
+    model: "discriminator_vgg_128"
+    norm_type: "batch"
+    act_type: "leakyrelu"
+    mode: "CNA"
+    nf: 64
+    in_nc: 3
+  net_F:
+    model: "vgg"
+    feature_layer: 34
+    use_bn: False
+    use_input_norm: True
+
+# 3. Model Configuration
+model:
+  name: "ESRGAN"
+  optimizer:
+    name: "ADAM"
+    amsgrad: False
+    lr: 0.001
+    weight_decay: 0
+    beta1: 0.9
+    beta2: 0.999
+  loss:
+    weight_pixel: 0.01
+    weight_feature: 1
+    weight_gan: 0.005
+  scheduler:
+    name: "MultiStepLR"
+    milestones: [1000, 5000, 100000] #[50000, 100000, 200000, 300000]
+    gamma: 0.5
+  resume:
+    active: False
+  train:
+    num_epochs: 100
